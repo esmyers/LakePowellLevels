@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+svg {
+  font: 10px sans-serif;
+}
+
+.area {
+  fill: #66a3d2;
+  clip-path: url(#clip);
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+  cursor:crosshair;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #ccc;
+  shape-rendering: crispEdges;
+}
+
+/*.brush .extent {
+  stroke: #ccc;
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
+}*/
+
+.extent{
+  visibility: hidden;
+}
+
+.handle{
+  stroke: red;
+  stroke-width:2;
+}
+
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+.focus circle {
+  fill: none;
+  stroke: red;
+}
+
+#map{
+  height: 700px;
+  width: 1080px;
+  margin-left:10px;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+<script src="//cdn.jsdelivr.net/leaflet.esri/1.0.0-rc.7/esri-leaflet.js"></script>
+<h1>Lake Powell Elevation Time-Series</h1>
+
+<div id="map"></div>
+
+</body>
+
+
+<script>
+
+//ESRI leaflet map
+
+var layerDef = {1:"Contour = 1000"};
+
+var map = L.map('map').setView([37.25, -110.95], 10);
+
+
+L.esri.basemapLayer("Terrain").addTo(map);
+
+var lakePolys = L.esri.dynamicMapLayer('http://wim.usgs.gov/arcgis/rest/services/LakePowell/Powell_MergeTEST/MapServer',{
+  opacity: 0.5,
+  layers: [1]
+}).addTo(map);
+
+//END ESRI leaflet Map
+
+//BEGIN D3
+//set margins
+var margin = {top: 430, right: 10, bottom: 20, left: 40},
+    width = 1080 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var parseDate = d3.time.format("%m/%d/%Y").parse,
+    bisectDate = d3.bisector(function(d) {return d.date;}).left;
+
+//set up the range for the x and y axis of the DATA
+var x = d3.time.scale().range([0, width]),
+    y = d3.scale.linear().range([height, 0]);
+
+
+var xAxis = d3.svg.axis().scale(x).orient("bottom"),
+    yAxis = d3.svg.axis().scale(y).orient("left").ticks(30);
+
+var brush = d3.svg.brush()
+    .x(x)
+    .y(y)
+    .extent([0,0])
+    .on("brush", brushed);
+
+var area = d3.svg.area()
+    .interpolate("monotone")
+    .x(function(d) { return x(d.date); })
+    .y0(height)
+    .y1(function(d) { return y(d.Elevation); });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right + 150) //additional pixels added to keep text from running outside the svg.
+    .attr("height", height + margin.top + margin.bottom);
+
+var context = svg.append("g")
+    .attr("class", "context")
+    //.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("transform", "translate(" + margin.left + "," + height + ")");
+
+var handle;
+
+var clickElevation;
+
+
+
+d3.csv("Elevation_TimeSeries.csv", type, function(error, data) {
+  x.domain(d3.extent(data.map(function(d) { return d.date; })));
+  //start the y axis at any multiple of 5 calculating at a starting pt. 5 units below the lowest elevation value in the dataset, end axis at the max elevation for the dataset
+  y.domain([d3.min(data.map(function(d) {return Math.floor(d.Elevation / 5)* 5; })), d3.max(data.map(function(d) { return d.Elevation; })) ]);
+
+  var dateFormatter = d3.time.format("%m/%d/%Y");
+
+  context.append("path")
+      .datum(data)
+      .attr("class", "area")
+      .attr("d", area);
+
+  context.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+  //create focus 'g' and add to context 'g'
+  var focus = context.append("g")
+      .attr("class", "focus")
+      .style("display", "none")
+      .call(brush);
+
+  /*focus.append("circle")
+      .attr("r", 4.5);*/
+
+  //append handle to focus 'g'
+  handle = focus.append('line')
+      .attr("class", "handle")
+      .attr('y2', height *2)
+
+  //append text
+  focus.append("text")
+      .attr("x", 9)
+      .attr("dy", ".35em");
+
+  //append the mousemove overlay to the context 'g' so you can seamlessly grab mouse events.
+  context.append("rect")
+      .attr("class", "overlay")
+      .attr("width", width)
+      .attr("height", height)
+      .on("mouseover", function() { focus.style("display", null); })
+      .on("mouseout", function() { focus.style("display", "none"); })
+      .on("mousemove", mousemove)
+      .on("click", mouseClick);
+
+
+
+  function mousemove(){
+    //get the x mouse coord.
+    var x0 = x.invert(d3.mouse(this)[0]), //gets the data under the mouse
+      i = bisectDate(data, x0, 1), //passes in data object, date under the mouse and sets i to be the index of the inverted data item
+      d = data[i];
+
+    focus.attr("transform", "translate(" + x(d.date) + ",0)");
+
+    //focus.attr("transform", "translate(" + x(d.date) + "," + y(d.Elevation) + ")");  //ALSO TRANSFORMS THE Y units of the focus 'g' which contains the handle
+    
+    focus.select("text").text(dateFormatter(d.date) +" : "+ d.Elevation + "m");
+   
+    focus.call(brush.event)
+      .call(brush.event);
+  }
+
+  function mouseClick(){
+    var x0 = x.invert(d3.mouse(this)[0]),
+      i = bisectDate(data, x0, 1),
+      d = data[i];
+      console.log("Elevation: " + d.Elevation)
+
+      clickElevation = d.Elevation;
+      console.log("Click Elevation = " + clickElevation);
+      var roundedElev = 5 * Math.round(clickElevation / 5);
+
+      layerDef = {1:"Contour = " + roundedElev};
+      lakePolys.setLayerDefs(layerDef);
+      console.log(layerDef);
+  }
+
+});
+
+function brushed() {
+  //get the value at the event only need the first one in the array since this is a slider and not 2 sided brush
+  //var valueX = brush.extent()[0];
+  var valueX = brush.extent()[0];
+  var valueY = brush.extent()[0];
+    
+  if (d3.event.sourceEvent){
+    valueX = x.invert(d3.mouse(this)[0]);
+    valueY = y.invert(d3.mouse(this)[1]);
+    brush.extent([valueX,valueX])
+  }
+
+  //console.log("valueX: " + valueX);
+  //console.log("valueY: " + valueY);
+  handle.attr("transform", "translate("+ x(valueX) + ",0)");
+  
+    /*if (d3.select("context.textBox"){
+        d3.select("textBox").remove();
+    }*/
+    /*var x0 = x.invert(d3.mouse(this)[0]),
+        i = bisectDate(data, x0, 1),
+        d0 = data[i - 1],
+        d1 = data[i],
+        d = x0 - d0.date > d1.date - x0 ? d1 : d0;*/
+
+    //OLD CODE FOR TEXT BOX ADDITION
+    //context.select(".textValue").remove();
+
+    /*var textBox = context.append("g")
+      .attr("class", "textValue")
+      .attr("width", "200")
+      .attr("height", "200")
+      .style("fill", "steelblue")
+      .append("text").text( valueX + " : " + valueY );*/
+  
+  
+}
+
+
+//parses all data in the .csv
+function type(d) {
+  d.date = parseDate(d.date);
+  d.Elevation = +d.Elevation;
+  return d;
+}
+
+</script>
+
+
