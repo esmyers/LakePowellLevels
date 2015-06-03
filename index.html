@@ -82,7 +82,6 @@ svg {
 <script>
 
 //ESRI leaflet map
-//some changes
 
 var layerDef = {0:"Contour = 1020"};
 
@@ -96,10 +95,10 @@ var lakePolys = L.esri.dynamicMapLayer('http://wim.usgs.gov/arcgis/rest/services
   layers: [0]
 }).addTo(map);
 
-var wqStations = L.esri.dynamicMapLayer('http://arcweb.wr.usgs.gov/ArcGIS/rest/services/LakePowell/LakePowellWaterQualityStations/MapServer',{
+/*var wqStations = L.esri.dynamicMapLayer('http://arcweb.wr.usgs.gov/ArcGIS/rest/services/LakePowell/LakePowellWaterQualityStations/MapServer',{
   opacity:0.5,
   layers:[0]
-}).addTo(map);
+}).addTo(map);*/
 
 /*lakePolys.on('loading', function(e){
   document.getElementById("loading").style.display = "block";
