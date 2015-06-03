@@ -7,7 +7,7 @@ svg {
 }
 
 .area {
-  fill: #66a3d2;
+  fill: #69bddb;
   clip-path: url(#clip);
 }
 
@@ -35,7 +35,7 @@ svg {
 }
 
 .handle{
-  stroke: red;
+  stroke: #bf5930;
   stroke-width:2;
 }
 
@@ -56,6 +56,15 @@ svg {
   margin-left:10px;
 }
 
+#loading{
+  position:absolute;
+  height:700px;
+  width:100%;
+  margin-left:10px;
+  background-color: red;
+  display:none;
+}
+
 </style>
 <body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
@@ -65,6 +74,7 @@ svg {
 <h1>Lake Powell Elevation Time-Series</h1>
 
 <div id="map"></div>
+<!--<div id="loading"></div>-->
 
 </body>
 
@@ -73,17 +83,31 @@ svg {
 
 //ESRI leaflet map
 
-var layerDef = {1:"Contour = 1000"};
+var layerDef = {0:"Contour = 1020"};
 
 var map = L.map('map').setView([37.25, -110.95], 10);
 
 
 L.esri.basemapLayer("Terrain").addTo(map);
 
-var lakePolys = L.esri.dynamicMapLayer('http://wim.usgs.gov/arcgis/rest/services/LakePowell/Powell_MergeTEST/MapServer',{
+var lakePolys = L.esri.dynamicMapLayer('http://wim.usgs.gov/arcgis/rest/services/LakePowell/merge_TEST/MapServer',{
   opacity: 0.5,
-  layers: [1]
+  layers: [0]
 }).addTo(map);
+
+var wqStations = L.esri.dynamicMapLayer('http://arcweb.wr.usgs.gov/ArcGIS/rest/services/LakePowell/LakePowellWaterQualityStations/MapServer',{
+  opacity:0.5,
+  layers:[0]
+}).addTo(map);
+
+/*lakePolys.on('loading', function(e){
+  document.getElementById("loading").style.display = "block";
+});
+
+lakePolys.on('load', function(e){
+  document.getElementById("loading").style.display = "none";
+});*/
+
 
 //END ESRI leaflet Map
 
@@ -154,18 +178,17 @@ d3.csv("Elevation_TimeSeries.csv", type, function(error, data) {
       .style("display", "none")
       .call(brush);
 
-  /*focus.append("circle")
-      .attr("r", 4.5);*/
-
   //append handle to focus 'g'
   handle = focus.append('line')
       .attr("class", "handle")
-      .attr('y2', height *2)
+      .attr('y2', height + 10 )
 
   //append text
   focus.append("text")
       .attr("x", 9)
-      .attr("dy", ".35em");
+      .attr("dy", "-2")
+      .attr("fill", "#a62f00")
+      .attr("font-size", "12px");
 
   //append the mousemove overlay to the context 'g' so you can seamlessly grab mouse events.
   context.append("rect")
@@ -205,7 +228,7 @@ d3.csv("Elevation_TimeSeries.csv", type, function(error, data) {
       console.log("Click Elevation = " + clickElevation);
       var roundedElev = 5 * Math.round(clickElevation / 5);
 
-      layerDef = {1:"Contour = " + roundedElev};
+      layerDef = {0:"Contour = " + roundedElev};
       lakePolys.setLayerDefs(layerDef);
       console.log(layerDef);
   }
