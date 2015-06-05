@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!--Erik Myers, USGS Wisconsin Internet Mapping (WiM) -->
 <meta charset="utf-8">
 <style>
 
@@ -39,7 +40,6 @@ svg {
   stroke-width:2;
 }
 
-
 .overlay {
   fill: none;
   pointer-events: all;
@@ -50,9 +50,15 @@ svg {
   stroke: red;
 }
 
-#map{
-  height: 700px;
+/*#wrapper{
+  height: 50%;
   width: 1080px;
+  position:relative;
+}*/
+
+#map{
+  height: 600px;
+  width: 100%;
   margin-left:10px;
 }
 
@@ -65,15 +71,49 @@ svg {
   display:none;
 }
 
+#header{
+  background-color: #181D27;
+  width:100%;
+  background-image: url('images/cartographer.png');
+  background-repeat:repeat-x;
+  height:90px;
+}
+
+#logo{
+  padding-top: 10px;
+  padding-left:5px;
+}
+#title{
+  color:#fff;
+  float:right;
+  padding-right:75px;
+}
+
+#bottomBar{
+  position:fixed;
+  left:20px;
+}
+
 </style>
 <body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
 <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
 <script src="//cdn.jsdelivr.net/leaflet.esri/1.0.0-rc.7/esri-leaflet.js"></script>
-<h1>Lake Powell Elevation Time-Series</h1>
+
+<div id="header">
+  <span>
+    <img id="logo" src="images/usgslogo.png">
+    <h1 id="title">Lake Powell Elevation Time-Series</h1>
+    <span/>    
+</div>
+
+
 
 <div id="map"></div>
+
+<div id="bottomBar"></div>
+
 <!--<div id="loading"></div>-->
 
 </body>
@@ -85,7 +125,7 @@ svg {
 
 var layerDef = {0:"Contour = 1020"};
 
-var map = L.map('map').setView([37.25, -110.95], 10);
+var map = L.map('map').setView([37.5, -110.95], 9);
 
 
 L.esri.basemapLayer("Terrain").addTo(map);
@@ -95,10 +135,11 @@ var lakePolys = L.esri.dynamicMapLayer('http://wim.usgs.gov/arcgis/rest/services
   layers: [0]
 }).addTo(map);
 
-/*var wqStations = L.esri.dynamicMapLayer('http://arcweb.wr.usgs.gov/ArcGIS/rest/services/LakePowell/LakePowellWaterQualityStations/MapServer',{
+var wqStations = L.esri.dynamicMapLayer('http://arcweb.wr.usgs.gov/ArcGIS/rest/services/LakePowell/LakePowellWaterQualityStations/MapServer',{
+  useCors:false,
   opacity:0.5,
   layers:[0]
-}).addTo(map);*/
+}).addTo(map);
 
 /*lakePolys.on('loading', function(e){
   document.getElementById("loading").style.display = "block";
@@ -225,12 +266,12 @@ d3.csv("Elevation_TimeSeries.csv", type, function(error, data) {
       console.log("Elevation: " + d.Elevation)
 
       clickElevation = d.Elevation;
-      console.log("Click Elevation = " + clickElevation);
+      //console.log("Click Elevation = " + clickElevation);
       var roundedElev = 5 * Math.round(clickElevation / 5);
 
       layerDef = {0:"Contour = " + roundedElev};
       lakePolys.setLayerDefs(layerDef);
-      console.log(layerDef);
+      //console.log(layerDef);
   }
 
 });
