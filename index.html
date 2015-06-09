@@ -62,12 +62,17 @@ svg {
   margin-left:10px;
 }
 
-#loading{
+#loader{
   position:absolute;
-  height:700px;
+  height:600px;
   width:100%;
-  margin-left:10px;
-  background-color: red;
+  top:100px;
+  background:rgba(255, 255, 255, 1);
+  transition:background 1s ease-out;
+  -webkit-transition:background 1s ease-out;
+}
+
+loader.hide{
   display:none;
 }
 
@@ -92,6 +97,11 @@ svg {
 #bottomBar{
   position:fixed;
   left:20px;
+  width:100%;
+}
+#explanation{
+  padding-top:10px;
+  padding-left:40px;
 }
 
 </style>
@@ -112,11 +122,10 @@ svg {
 
 <div id="map"></div>
 
+<div id='loader'><span class='message'>loading</span></div>
+<div id="explanation">Click on the graph below to view the corresponding lake level.</div>
 <div id="bottomBar"></div>
 
-<!--<div id="loading"></div>-->
-
-</body>
 
 
 <script>
@@ -130,24 +139,29 @@ var map = L.map('map').setView([37.5, -110.95], 9);
 
 L.esri.basemapLayer("Terrain").addTo(map);
 
+var wqStations = L.esri.dynamicMapLayer('http://arcweb.wr.usgs.gov/ArcGIS/rest/services/LakePowell/LakePowellWaterQualityStations/MapServer',{
+  useCors:true,
+  opacity:0.5,
+  layers:[0],
+  proxy: "/SIGLProxies/proxy.ashx"
+}).addTo(map);
+
+//var wqStations = L.esri.featureLayer('http://grandcanyon.usgs.gov/arcgis/rest/services/Physical/LakePowellWaterQualityStations/FeatureServer/0').addTo(map);
+
+
 var lakePolys = L.esri.dynamicMapLayer('http://wim.usgs.gov/arcgis/rest/services/LakePowell/merge_TEST/MapServer',{
   opacity: 0.5,
   layers: [0]
-}).addTo(map);
+}).addTo(map).on('load', finishedLoading);
 
-var wqStations = L.esri.dynamicMapLayer('http://arcweb.wr.usgs.gov/ArcGIS/rest/services/LakePowell/LakePowellWaterQualityStations/MapServer',{
-  useCors:false,
-  opacity:0.5,
-  layers:[0]
-}).addTo(map);
 
 /*lakePolys.on('loading', function(e){
   document.getElementById("loading").style.display = "block";
-});
-
-lakePolys.on('load', function(e){
-  document.getElementById("loading").style.display = "none";
 });*/
+
+function finishedLoading(){
+  document.getElementById("loader").style.display = "none";
+}
 
 
 //END ESRI leaflet Map
@@ -231,6 +245,18 @@ d3.csv("Elevation_TimeSeries.csv", type, function(error, data) {
       .attr("fill", "#a62f00")
       .attr("font-size", "12px");
 
+  //x-axis label    
+  context.append("text")
+      .attr("x", width/2)
+      .attr("y", height + margin.bottom + 15) //50+20+15 =85px
+      .text('Year');
+
+  //y-axis label
+  context.append("text")
+      .attr("x", -25)
+      .attr("y", -15)
+      .attr("transform", "rotate(-90)")
+      .text('Depth');
   //append the mousemove overlay to the context 'g' so you can seamlessly grab mouse events.
   context.append("rect")
       .attr("class", "overlay")
